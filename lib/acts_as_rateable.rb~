@@ -9,7 +9,7 @@ module ActiveRecord
 			  def <<( rate )
 			      r = Rating.new
 			      r.rate = rate
-			      r.rateable = proxy_association.owner
+			      r.rateable = proxy_owner
 			      r.user_id = rate.user_id
             r.free_text = rate.free_text
             r.rater_name = rate.rater_name
@@ -44,14 +44,14 @@ module ActiveRecord
         #
         # todo refactor the 'id' & 'login' method names to the acts_as_rateable options hash and make it configurable
         #
-				def rate_it( score, users, user, free_text = "" )
+				def rate_it( score, user, free_text = "" )
 					return unless score
-					rate = Rate.find_or_create_by_score( score.to_f )
+					rate = Rate.find_or_create_by_score( score.to_i )
           raise "User must respond to 'id' in order to set the user ID!" unless user.respond_to? :id
-          raise "User must respond to 'login' in order to set the rater name!" unless user.respond_to? :name
+          raise "User must respond to 'login' in order to set the rater name!" unless user.respond_to? :login
           rate.user_id = user.id
           rate.free_text = free_text
-          rate.rater_name = user.name
+          rate.rater_name = user.login
 					rates << rate
 				end
 
@@ -60,22 +60,21 @@ module ActiveRecord
 					return 0 if rates.empty?
 					( rates.inject(0){|total, rate| total += rate.score }.to_f / rates.size )
 				end
-				
-				def rates_number
-				   return 0 if rates.empty?
-				   rates.count
-				end
 
-
-				def saved_rating
-					return 0 if rates.empty?
-					( rates.inject(0){|total, rate| rate= rate.score }.to_f  )
-				end
 				# Rounds the average rating value.
 				def average_rating_round
 					average_rating.round
 				end
+				
+				def saved_rating
+					return 0 if rates.empty?
+					( rates.inject(0){|total, rate| rate= rate.score }.to_f  )
+				end
 		
+		  def rates_number
+				   return 0 if rates.empty?
+				   rates.count
+				end
 				# Returns the average rating in percent. The maximal score must be provided	or the default value (5) will be used.
 				# TODO make maximum_rating automatically calculated.
 				def average_rating_percent( maximum_rating = 5 )
@@ -88,13 +87,11 @@ module ActiveRecord
 					ratings.detect {|r| r.user_id == user.id }
         end
 
-        def parse_ratings(output = :xml)
+    def parse_ratings(output = :xml)
           Rating.parse_as(ratings, output)
-        end
+    end
 			end
 			
 		end
   end
 end
-
-ActiveRecord::Base.send(:include, ActiveRecord::Acts::Rateable)
