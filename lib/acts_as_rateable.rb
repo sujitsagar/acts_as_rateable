@@ -67,6 +67,7 @@ module ActiveRecord
 				end
 
 
+
 				def saved_rating
 					return 0 if rates.empty?
 					( rates.inject(0){|total, rate| rate= rate.score }.to_f  )
